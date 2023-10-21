@@ -20,7 +20,8 @@ class RegisterView(APIView):
         payload = {
             "user" : {
                 "username" : user.username,
-                "email" : user.email
+                "email" : user.email,
+                "password" : user.password
             },
             "token" : str(access_token)
         }
@@ -30,19 +31,6 @@ class RegisterView(APIView):
 class LoginView(APIView):
     serializer_class = LoginSerializer
     
-    # def post(self,request):
-    #     serializer = self.serializer_class(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     user = serializer.save()
-    #     access_token = AccessToken.for_user(user)
-    #     payload = {
-    #         "user" : {
-    #             "username" : user.username,
-    #             "email" : user.email
-    #         },
-    #         "token" : str(access_token)
-    #     }
-    #     return Response(request.data,status=status.HTTP_200_OK)
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

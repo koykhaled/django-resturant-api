@@ -2,11 +2,25 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from django.contrib.auth import authenticate
+from django.contrib.auth.hashers import make_password
+
 class RegisterSerializer(serializers.ModelSerializer):
+
+    password = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
-        fields = ['username','email','password']
+        fields = ['username','email' ,'password']
 
+    def create(self, validated_data):
+        user = User(
+        username=validated_data['username'],
+        email=validated_data['email']
+        )
+        password = validated_data['password']
+        user.password = make_password(password) 
+        user.save()
+        return user
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
