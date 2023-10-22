@@ -1,5 +1,6 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User , Group
+
 
 # Create your models here.
 
@@ -50,3 +51,11 @@ class OrderItems(models.Model):
     
     class Meta:
         unique_together = ('order','menu_item')
+
+
+class GroupMembership(models.Model):
+    user =models.ForeignKey(User,on_delete=models.CASCADE)
+    group = models.ForeignKey(Group,on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return str(self.user.username) + "_" + str(self.group.name)
