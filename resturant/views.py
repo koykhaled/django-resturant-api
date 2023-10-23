@@ -102,28 +102,37 @@ class MenuItemsView(APIView):
         
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response({"data" : serializer.data})
+        return Response({"data" : serializer.data,"message" : "adding new item done".capitalize()},status=status.HTTP_201_CREATED)
     
     def put(self,request,item_id):
-        menu_item = get_object_or_404(MenuItems,id=item_id)
-        
-        menu_item.title = request.data.get('title') or menu_item.title
-        menu_item.price = request.data.get('price') or menu_item.price
-        menu_item.featured = request.data.get('featured') or menu_item.featured
-        menu_item.save()
-        serializer = self.serializer_class(menu_item)
-        return Response({"data" : serializer.data})
+        try:
+            
+            menu_item = get_object_or_404(MenuItems,id=item_id)
+            
+            menu_item.title = request.data.get('title') or menu_item.title
+            menu_item.price = request.data.get('price') or menu_item.price
+            menu_item.featured = request.data.get('featured') or menu_item.featured
+            menu_item.save()
+            serializer = self.serializer_class(menu_item)
+            return Response({"data" : serializer.data ,"message":"updating item done"},status=status.HTTP_200_OK)
+        except Exception as e :
+                return Response({"error":str(e)},status=status.HTTP_400_BAD_REQUEST)
     
     
     def patch(self,request,item_id):
-        menu_item = get_object_or_404(MenuItems,id=item_id)
-        
-        menu_item.title = request.data.get('title') or menu_item.title
-        menu_item.price = request.data.get('price') or menu_item.price
-        menu_item.featured = request.data.get('featured') or menu_item.featured
-        menu_item.save()
-        serializer = self.serializer_class(menu_item)
-        return Response({"data" : serializer.data})
+        try:
+            
+            menu_item = get_object_or_404(MenuItems,id=item_id)
+            
+            menu_item.title = request.data.get('title') or menu_item.title
+            menu_item.price = request.data.get('price') or menu_item.price
+            menu_item.featured = request.data.get('featured') or menu_item.featured
+            menu_item.save()
+            serializer = self.serializer_class(menu_item)
+            return Response({"data" : serializer.data ,"message":"updating item done"},status=status.HTTP_200_OK)
+        except Exception as e :
+                return Response({"error":str(e)},status=status.HTTP_400_BAD_REQUEST)
+
     
     def delete(self,request,item_id):
         try:
