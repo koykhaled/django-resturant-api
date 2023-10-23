@@ -4,10 +4,11 @@ from rest_framework.decorators import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status 
 from .permissoins import IsManager
-from .serializers import GroupMemberSerializer
+from .serializers import GroupMemberSerializer , MenuItemsSerializer
 from .models import GroupMembership
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User , Group
+from .models import MenuItems , Category
 
 
 # Create your views here.
@@ -80,3 +81,55 @@ class GroupMemeberView(APIView):
             return Response({"message":"Not Found"},status=status.HTTP_200_OK)
         except Exception as e :
             return Response({"message" : "User Not Found"},status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+
+class MenuItemsView(APIView):
+    permission_classes = [IsAuthenticated,IsManager]
+    serializer_class = MenuItemsSerializer
+
+    def get(self,reuqest):
+        menu_items = MenuItems.objects.all()
+        serializer = self.serializer_class(menu_items,many=True)
+        if len(serializer.data) > 0:
+            return Response({"data" : serializer.data}, status=status.HTTP_200_OK)
+        return Response ({"message":"not items in menu"})
+
+    def post(self,request):
+        serializer = self.serializer_class(data=request.data)
+        
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"data" : serializer.data})
+    
+    def put(self,request,item_id):
+        menu_item = get_object_or_404(MenuItems,id=item_id)
+        
+        menu_item.title = request.data.get('title') or menu_item.title
+        menu_item.price = request.data.get('price') or menu_item.price
+        menu_item.featured = request.data.get('featured') or menu_item.featured
+        menu_item.save()
+        serializer = self.serializer_class(menu_item)
+        return Response({"data" : serializer.data})
+    
+    
+    def patch(self,request,item_id):
+        menu_item = get_object_or_404(MenuItems,id=item_id)
+        
+        menu_item.title = request.data.get('title') or menu_item.title
+        menu_item.price = request.data.get('price') or menu_item.price
+        menu_item.featured = request.data.get('featured') or menu_item.featured
+        menu_item.save()
+        serializer = self.serializer_class(menu_item)
+        return Response({"data" : serializer.data})
+    
+    def delete(self,request,item_id):
+        try:
+            menu_item = get_object_or_404(MenuItems,id=item_id)
+            if menu_item :
+                menu_item.delete()
+                return Response({"message":"Item deleted done"},status=status.HTTP_200_OK)
+        except Exception as e: 
+            return Response({"error" : "Item not found in menu"})

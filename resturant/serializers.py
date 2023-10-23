@@ -7,14 +7,27 @@ class GroupMemberSerializer(serializers.ModelSerializer):
         model = GroupMembership
         fields = ['user','group']
         
-    # def validate(self, validated_data):
-    #     user = validated_data['user']
-    #     group = validated_data['group']
-    #     if user and group :
-    #         user_group = GroupMembership.objects.create(
-    #             user = user,
-    #             group=group
-    #         )
-    #         user_group.save()
-    #         return user_group
-    #     raise serializers.ValidationError({"error" : "user or group not found"})
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['title', 'slug']
+
+
+
+class MenuItemsSerializer(serializers.ModelSerializer):
+    category_name = serializers.StringRelatedField(source="category")
+    category_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = MenuItems
+        fields = ['title','price','featured','category_id','category_name']
+        
+    def get_category_name(self, obj):
+        return obj.category.title
+    
+    def update(self, instance, validated_data):
+        for field in validated_data:
+            setattr(instance, field, validated_data[field])
+        instance.save()
+        return instance
