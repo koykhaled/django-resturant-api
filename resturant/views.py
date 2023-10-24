@@ -1,14 +1,15 @@
 from django.shortcuts import render
 from rest_framework.response import Response
-from rest_framework.decorators import APIView
+from rest_framework.decorators import APIView , permission_classes
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status 
+from rest_framework import status , filters
 from .permissoins import IsManager
 from .serializers import GroupMemberSerializer , MenuItemsSerializer
 from .models import GroupMembership
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User , Group
 from .models import MenuItems , Category
+
 
 
 # Create your views here.
@@ -18,6 +19,7 @@ class GroupMemeberView(APIView):
     permission_classes = [IsAuthenticated,IsManager]
     serializer_class = GroupMemberSerializer
     # get users that assigne to groups
+    
     def get(self,request):
         
         user_group = GroupMembership.objects.all()
@@ -87,28 +89,45 @@ class GroupMemeberView(APIView):
 
 
 class MenuItemsView(APIView):
-    permission_classes = [IsAuthenticated,IsManager]
+    permission_classes = [IsAuthenticated]
     serializer_class = MenuItemsSerializer
+    filter_backends = [filters.SearchFilter]
+    # search_fields = ['title','category']
 
     def get(self,reuqest):
+        search = reuqest.query_params.get('search',)
+        price = reuqest.query_params.get('price',)
+        category = reuqest.query_params.get('category')
         menu_items = MenuItems.objects.all()
+        if search :
+            menu_items = MenuItems.objects.filter(title__icontains=search)
+        if category :
+            category_id = Category.objects.filter(title__icontains=category).get().id
+            menu_items = MenuItems.objects.filter(category=category_id)
+        if price :
+            menu_items = MenuItems.objects.filter(price__lte=price)
         serializer = self.serializer_class(menu_items,many=True)
         if len(serializer.data) > 0:
             return Response({"data" : serializer.data}, status=status.HTTP_200_OK)
-        return Response ({"message":"not items in menu"})
+        return Response ({"message":"no items in menu"})
+
 
     def post(self,request):
-        serializer = self.serializer_class(data=request.data)
+        if not IsManager().has_permission(request,self) :
+            return Response({"message" : "permission denied"},status=status.HTTP_403_FORBIDDEN)
         
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"data" : serializer.data,"message" : "adding new item done".capitalize()},status=status.HTTP_201_CREATED)
-    
+
+
     def put(self,request,item_id):
         try:
-            
+            if not IsManager().has_permission(request,self) :
+                return Response({"message" : "permission denied"},status=status.HTTP_403_FORBIDDEN)
+
             menu_item = get_object_or_404(MenuItems,id=item_id)
-            
             menu_item.title = request.data.get('title') or menu_item.title
             menu_item.price = request.data.get('price') or menu_item.price
             menu_item.featured = request.data.get('featured') or menu_item.featured
@@ -121,9 +140,10 @@ class MenuItemsView(APIView):
     
     def patch(self,request,item_id):
         try:
-            
+            if not IsManager().has_permission(request,self) :
+                return Response({"message" : "permission denied"},status=status.HTTP_403_FORBIDDEN)
+
             menu_item = get_object_or_404(MenuItems,id=item_id)
-            
             menu_item.title = request.data.get('title') or menu_item.title
             menu_item.price = request.data.get('price') or menu_item.price
             menu_item.featured = request.data.get('featured') or menu_item.featured
@@ -136,9 +156,13 @@ class MenuItemsView(APIView):
     
     def delete(self,request,item_id):
         try:
+            if not IsManager().has_permission(request,self) :
+                return Response({"message" : "permission denied"},status=status.HTTP_403_FORBIDDEN)
+
             menu_item = get_object_or_404(MenuItems,id=item_id)
             if menu_item :
                 menu_item.delete()
                 return Response({"message":"Item deleted done"},status=status.HTTP_200_OK)
         except Exception as e: 
             return Response({"error" : "Item not found in menu"})
+        
