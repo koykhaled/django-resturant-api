@@ -40,6 +40,9 @@ class Order(models.Model):
     quantity = models.SmallIntegerField()
     status = models.BooleanField(db_index=True,default=0)
     total = models.DecimalField(max_digits=6,decimal_places=2)
+    
+    def __str__(self):
+        return str(self.user)+ " ord"+str(self.id)
 
 
 class OrderItems(models.Model):
@@ -51,6 +54,8 @@ class OrderItems(models.Model):
     
     class Meta:
         unique_together = ('order','menu_item')
+    def __str__(self):
+        return str(self.menu_item)
 
 
 class GroupMembership(models.Model):

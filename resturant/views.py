@@ -3,12 +3,13 @@ from rest_framework.response import Response
 from rest_framework.decorators import APIView , permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status , filters
-from .permissoins import IsManager
-from .serializers import GroupMemberSerializer , MenuItemsSerializer
+from .permissoins import IsManager , IsDeliveryCrew
+from .serializers import GroupMemberSerializer , MenuItemsSerializer , CartSerializer , OrderSerializer
 from .models import GroupMembership
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User , Group
-from .models import MenuItems , Category
+from .models import MenuItems , Category , Cart , Order, OrderItems
+import decimal
 
 
 
@@ -92,7 +93,6 @@ class MenuItemsView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = MenuItemsSerializer
     filter_backends = [filters.SearchFilter]
-    # search_fields = ['title','category']
 
     def get(self,reuqest):
         search = reuqest.query_params.get('search',)
@@ -165,4 +165,93 @@ class MenuItemsView(APIView):
                 return Response({"message":"Item deleted done"},status=status.HTTP_200_OK)
         except Exception as e: 
             return Response({"error" : "Item not found in menu"})
+
+
+
+class CartView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CartSerializer
+    
+    def get(self,request):
+        user = User.objects.get(id=request.user.id)
+        cart_items = Cart.objects.filter(user=user)
+        serializer = self.serializer_class(cart_items,many=True)
+        if len(serializer.data)>0:
+            return Response({"data" : serializer.data})
+        return Response ({"message":"no items in menu"})
+    
+    def post(self,request):
+        user = User.objects.get(id=request.user.id)
+        item_id = request.data.get('item_id')
+        menu_item = get_object_or_404(MenuItems,id=item_id)
+        quantity = request.data.get('quantity')
+        unit_price = menu_item.price
+        price = decimal.Decimal(quantity) * unit_price
+        cart = Cart.objects.create(
+            user = user,
+            menu_item=menu_item,
+            quantity=quantity,
+            unit_price=unit_price,
+            price=price
+        )
+        cart.save()
+        serializer = self.serializer_class(cart)
+        print(menu_item)
+        return Response({"me" : serializer.data})
+    
+    
+    
+class OrderView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer
+    
+    def post(self,request):
+        user = User.objects.get(id=request.user.id)
+
+        group = Group.objects.get(name='delivery_crew')
+        delivery_crew = get_object_or_404(GroupMembership,user=request.data.get('delivery_id'),group=group)
+        delivery = get_object_or_404(User,id=delivery_crew.user.id)
+        
+
+        cart_items = Cart.objects.filter(user=user)
+        if len(cart_items) == 0 :
+            return Response({"message" : "No items i cart"})
+        
+
+        status = request.data.get('status')
+        quantity = 0
+        totla_price = 0
+        for cart in cart_items:
+            quantity += cart.quantity
+            totla_price += cart.price
+            cart.delete()
+        
+        order = Order.objects.create(
+            user=user,
+            delivery_crew=delivery,
+            quantity=quantity,
+            total=totla_price,
+            status=status
+        )
+        for order_item in cart_items :
+            OrderItems.objects.create(
+                order=order,
+                menu_item=order_item.menu_item,
+                quantity=cart.quantity,
+                unit_price=cart.unit_price,
+                total=cart.price
+            )
+        serializer = self.serializer_class(order)
+        return Response({"data" : serializer.data})
+    
+    def put(self,request,order_id):
+        if not IsDeliveryCrew().has_permission(request,self):
+            return Response({"message" : "Permission Denied"})
+        order = Order.objects.get(id=order_id)
+        order.status = request.data.get('status')
+        order.save()
+        # return Response({"message" : f"{order.status}"})
+        if order.status == "True":
+            return Response({"message" : f"{order} Order Deliverd Successfully"})
+        return Response({"message" : f"{order} Not Deliverd Yet"})
         

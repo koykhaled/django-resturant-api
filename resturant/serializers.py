@@ -31,3 +31,20 @@ class MenuItemsSerializer(serializers.ModelSerializer):
             setattr(instance, field, validated_data[field])
         instance.save()
         return instance
+    
+
+class CartSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(write_only=True)
+    user = serializers.StringRelatedField()
+    item_id = serializers.IntegerField(write_only=True)
+    menu_item = serializers.StringRelatedField()
+    class Meta:
+        model = Cart
+        fields = ['user','user_id','menu_item','item_id','quantity','unit_price','price']
+        
+        
+        
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = '__all__'
