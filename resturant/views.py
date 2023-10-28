@@ -198,9 +198,8 @@ class CartView(APIView):
         serializer = self.serializer_class(cart)
         print(menu_item)
         return Response({"me" : serializer.data})
-    
-    
-    
+
+
 class OrderView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = OrderSerializer
@@ -224,7 +223,6 @@ class OrderView(APIView):
         for cart in cart_items:
             quantity += cart.quantity
             totla_price += cart.price
-            cart.delete()
         
         order = Order.objects.create(
             user=user,
@@ -250,7 +248,6 @@ class OrderView(APIView):
         order = Order.objects.get(id=order_id)
         order.status = request.data.get('status')
         order.save()
-        # return Response({"message" : f"{order.status}"})
         if order.status == "True":
             return Response({"message" : f"{order} Order Deliverd Successfully"})
         return Response({"message" : f"{order} Not Deliverd Yet"})

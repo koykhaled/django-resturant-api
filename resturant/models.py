@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User , Group
+from django.dispatch import receiver
+from django.db.models.signals import post_save
+
 
 
 # Create your models here.
@@ -43,6 +46,12 @@ class Order(models.Model):
     
     def __str__(self):
         return str(self.user)+ " ord"+str(self.id)
+
+@receiver(post_save,sender=Order)
+def delete_cart_items(sender,instance,created,**kwargs):
+    if created:
+        Cart.objects.filter(user=instance.user).delete()
+
 
 
 class OrderItems(models.Model):
