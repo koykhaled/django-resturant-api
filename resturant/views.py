@@ -204,6 +204,21 @@ class OrderView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = OrderSerializer
     
+    def get(self,request):
+        orders = Order.objects.all()
+        if IsManager().has_permission(request,self) :
+            status = request.query_params.get('status')
+            if status :
+                orders = Order.objects.filter(status=status)
+        elif IsDeliveryCrew().has_permission(request,self) :
+            delivery = User.objects.get(id=request.user.id)
+            order = Order.objects.filter(delivery_crew=delivery)
+        else :
+            user = User.objects.get(id=request.user.id)
+            orders = Order.objects.filter(user=user)
+        serializer = self.serializer_class(orders,many=True)
+        return Response({'message':serializer.data})
+    
     def post(self,request):
         user = User.objects.get(id=request.user.id)
 
